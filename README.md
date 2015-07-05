@@ -6,6 +6,7 @@ It requires a modern web browser to run, and images must be in a web-compatible 
 Sample images and a sample config file are included to demonstrate how it works.
 
 To use:
+
 1. Download the code
 2. Replace the contents of the "images" folder with your own images
 3. Edit the "config.jsonp" file to describe how your images are layered and positioned
