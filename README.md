@@ -3,8 +3,6 @@ LIC is a template for displaying multiple images layered on top of each other, w
 
 It requires a modern web browser to run, and images must be in a web-compatible format (png and jpg seem to work OK). You will also need to edit the config file, using a text editor such as Notepad.
 
-(Yes, that means "writing code", but if you have a look at "config.jsonp" it should hopefully be fairly self-explanatory. "Tools to make the config easier to work with" is on the project to-do list).
-
 Sample images and a sample config file are included to demonstrate how it works.
 
 To use:
