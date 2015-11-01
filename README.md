@@ -1,7 +1,9 @@
-# LIC (Layered Image Controller)
-LIC is a template for displaying multiple images layered on top of each other, with controls to hide/show individual layers, using an HTML file. An example of use would be a simple dress-up game.
+# LICH (Layered Image Controlling HTML)
+LICH is a template for displaying multiple images layered on top of each other, with controls to hide/show individual layers, using an HTML file. An example of use would be a simple dress-up game.
 
-It requires a modern web browser to run, and images must be in a web-compatible format (png and jpg seem to work OK). You will also need to edit the configuration file, using a text editor such as Notepad.
+It also includes a GIMP plugin for generating a config file from existing layers.
+
+It requires a modern web browser to run, and images must be in a web-compatible format (png and jpg seem to work OK). If you aren't using the GIMP plugin, you will also need to edit the configuration file, using a text editor such as Notepad.
 
 Sample images and a sample config file are included to demonstrate how it works.
 
