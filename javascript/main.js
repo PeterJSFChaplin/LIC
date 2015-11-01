@@ -1,7 +1,7 @@
+'use strict'
+
 var canvas = document.getElementById("canvas");
 var sidebar = document.getElementById("sidebar");
-var loaded = {};
-var allLoaded = false;
 
 if ( typeof config.width !== "undefined" ) {
     canvas.setAttribute('width', config.width);
@@ -10,23 +10,11 @@ if ( typeof config.height !== "undefined" ) {
     canvas.setAttribute('height', config.height);
 }
 
-setup(config.layers);
-
-function setup(layers) {
+// Set up options sidebar
+function optionsHTML(layers) {
+    var ul = document.createElement('ul');
     layers.forEach(function(layer) {
-	if ( (layer.type || "single") == "single" ) {
-	    layer.img = new Image();
-	    layer.img.addEventListener("load", function() {
-		loaded[layer] = true;
-		if ( config.layers.every(function(layer) {
-		    return (layer.type || "single") != "single" || loaded[layer];
-		}) ) {
-		    allLoaded = true;
-		    draw(config.layers, canvas);
-		}
-	    }, false);
-	    layer.img.src = 'images/' + layer.source.replace('#', '%23');
-	}
+	var li = document.createElement('li');
 
 	var control = document.createElement('p');
 
@@ -40,14 +28,59 @@ function setup(layers) {
 	label.setAttribute('for', layer.source)
 	label.innerHTML = layer.source;
 	control.appendChild(label);
+	li.appendChild(control);
 
-	sidebar.appendChild(control);
-	
-	if ( layer.type == "group" ) {
-	    setup(layer.layers);
+	if (layer.type === "group") {
+	    li.appendChild(optionsHTML(layer.layers));
+	}
+	ul.appendChild(li);
+    });
+    return ul;
+}
+sidebar.appendChild(optionsHTML(config.layers));
+
+// Load images
+function loadImage(layer) {
+    return new Promise(
+	function(resolve, reject) {
+	    var img =  new Image();
+	    img.addEventListener("load", function() {
+		resolve(img);
+	    });
+	    img.addEventListener("error", function() {
+		reject('Error loading '+ layer.source);
+	    });
+	    img.src = 'images/' + encodeURIComponent(layer.source);
+	    layer.img = img;
+	}
+    )
+}
+
+function loadImages(layers) {
+    var loaders = [];
+    layers.forEach(function(layer) {
+	layer.type = layer.type || 'single';
+	if ( layer.type === 'single' ) {
+	    loaders.push(
+		loadImage(layer)
+	    );
+	} else {
+	    loaders.push(
+		loadImages(layer.layers)
+	    );
 	}
     });
+    return Promise.all(loaders);
 }
+
+loadImages(config.layers)
+.then(function() {
+    draw(config.layers, canvas);
+
+    sidebar.addEventListener('change', function() {
+	draw(config.layers, canvas);
+    });
+});
 
 function draw(layers, canvas) {
     var x = canvas.getContext("2d");
@@ -109,9 +142,3 @@ function getHeight(layers) {
     })
     return height
 }
-
-sidebar.addEventListener('change', function() {
-    if ( allLoaded ) {
-	draw(config.layers, canvas);
-    }
-});
