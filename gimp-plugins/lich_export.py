@@ -15,7 +15,7 @@ import gtk, os, json
 from gimpfu import *
 from gimpshelf import shelf
 
-def traverse(layer, path, offset_x, offset_y):
+def traverse(img, layer, path, offset_x, offset_y):
     modes = {
         NORMAL_MODE: "normal",
         MULTIPLY_MODE: "multiply",
@@ -37,53 +37,85 @@ def traverse(layer, path, offset_x, offset_y):
     }
     config = {}
     source = path + layer.name
+
     if hasattr(layer,"layers"):
         config["layers"] = []
         for L in reversed(layer.layers):
-            config["layers"].append(traverse(L, source + "/", layer.offsets[0], layer.offsets[1]))
+            config["layers"].append(traverse(img, L, source + "/", layer.offsets[0], layer.offsets[1]))
         config["type"] = "group"
         config["source"] = source
+        os.mkdir(source)
+
+    elif layer.mask:
+        config["type"] = "group"
+        config["source"] = source
+        config["layers"] = []
+        os.mkdir(source)
+
+        config2 = {}
+        config2["type"] = "single"
+        config2["source"] = source + "/base.png"
+        pdb.gimp_file_save(img, layer, source + "/base.png", source + "/base.png")
+
+        config["layers"].append(config2)
+
+        tmp = pdb.gimp_layer_new_from_drawable(layer.mask, img)
+        img.add_layer(tmp,0)
+        tmp.add_alpha()
+        white = gimpcolor.RGB(1.0, 1.0, 1.0, 1.0)
+        pdb.plug_in_colortoalpha(img, tmp, white)
+
+        config3 = {}
+        config3["type"] = "single"
+        config3["source"] = source + "/mask.png"
+        config3["mode"] = "destination-in"
+        pdb.gimp_file_save(img, tmp, source + "/mask.png", source + "/mask.png")
+        img.remove_layer(tmp)
+
+        config["layers"].append(config3)
+
     else:
         config["type"] = "single"
         config["source"] = source + ".png"
+        pdb.gimp_file_save(img, layer, source + ".png", source + ".png")
+
     if layer.mode in modes:
         config["mode"] = modes[layer.mode]
+
     config["offset"] = [
         layer.offsets[0] - offset_x,
         layer.offsets[1] - offset_y
     ]
+
     return config
 
-def save_file(img, draw) :    
-    config = {}
-    config["layers"] = []
-    for L in reversed(img.layers):
-        config["layers"].append(traverse(L, "", 0, 0))
-        config["height"] = img.height
-        config["width"] = img.width
+def save_file(img, draw) :
 
     chooser = gtk.FileChooserDialog(title="User file selection",
-                                    action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                                    action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER,
                                     buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,
                                              gtk.STOCK_SAVE, gtk.RESPONSE_OK))
-    chooser.set_current_name(os.path.basename("config.jsonp"))
     
     response = chooser.run()
     if response != gtk.RESPONSE_OK:
         chooser.destroy()
-        gimp.message(_("INFO: save was aborted by the user"))
+        gimp.message("INFO: save was aborted by the user")
         return
         
-    filename = chooser.get_filename()
-    if filename:
-        try:
-            file_obj = open(filename, "w")
-            file_obj.write("var config = " + json.dumps(config, indent=4, separators=(',', ': ')));
-            file_obj.close()
-        except:
-            gimp.message("ERROR in saving file: " + filename)
+    folder = chooser.get_filename()
+    if folder:
+        config = {}
+        config["layers"] = []
+        for L in reversed(img.layers):
+            config["height"] = img.height
+            config["width"] = img.width
+            config["layers"].append(traverse(img, L, folder + "/", 0, 0))
             
-    else: gimp.message("ERROR: no file-name given!")
+        file_obj = open(folder + "/config.jsonp", "w")
+        file_obj.write("var config = " + json.dumps(config, indent=4, separators=(',', ': ')));
+        file_obj.close()
+            
+    else: gimp.message("ERROR: no folder given!")
     
     chooser.destroy()
     return
